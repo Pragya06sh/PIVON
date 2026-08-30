@@ -4,6 +4,13 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  env: {
+    NEXTAUTH_URL:
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://pivon.agency"),
+    NEXTAUTH_SECRET:
+      process.env.NEXTAUTH_SECRET || "ed50affe3bb73adb2a5182d6984a4b07f8e1af732aa4c8b2d4765738642caebb",
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
