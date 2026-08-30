@@ -1,7 +1,7 @@
 node_modules
 .next
 out
-.env
+
 .env.local
 *.log
 .DS_Store
@@ -20,7 +20,7 @@ build/
 dist/
 
 # Environment variables / secrets
-.env
+
 .env.local
 .env.development.local
 .env.test.local
