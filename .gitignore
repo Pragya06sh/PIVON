@@ -27,8 +27,7 @@ dist/
 .env.production.local
 
 # Prisma
-prisma/*.db
-prisma/*.db-journal
+# (dev.db is committed for zero-config serverless deployments)
 
 # Logs
 npm-debug.log*
