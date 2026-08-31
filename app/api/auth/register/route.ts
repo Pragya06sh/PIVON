@@ -77,8 +77,15 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Registration error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("P1000") || message.includes("Authentication failed") || message.includes("Can't reach database")) {
+      return NextResponse.json(
+        { error: "Database connection failed. Please verify your DATABASE_URL in Vercel environment variables." },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
