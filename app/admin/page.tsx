@@ -4,7 +4,18 @@ import { useEffect, useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 
-const ADMIN_EMAIL = "pivon.agency@gmail.com";
+const ADMIN_EMAILS = [
+  "pivon.agency@gmail.com",
+  "admin@pivon.ai",
+  process.env.NEXT_PUBLIC_ADMIN_EMAIL,
+]
+  .filter(Boolean)
+  .map((e) => (e as string).toLowerCase().trim());
+
+function checkIsAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
 
 type UserRecord = {
   id: string;
@@ -70,16 +81,18 @@ export default function AdminDashboardPage() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    if (status === "authenticated" && checkIsAdmin(session?.user?.email)) {
       fetchAdminData();
     }
   }, [status, session]);
 
   async function fetchAdminData() {
     setLoading(true);
+    setFetchError(null);
     try {
       const [statsRes, usersRes, leadsRes, paymentsRes] = await Promise.all([
         fetch("/api/admin/stats"),
@@ -88,7 +101,9 @@ export default function AdminDashboardPage() {
         fetch("/api/admin/payments"),
       ]);
 
-      if (statsRes.ok) setStats(await statsRes.json());
+      if (statsRes.ok) {
+        setStats(await statsRes.json());
+      }
       if (usersRes.ok) {
         const uData = await usersRes.json();
         setUsers(uData.users || []);
@@ -101,8 +116,19 @@ export default function AdminDashboardPage() {
         const pData = await paymentsRes.json();
         setPayments(pData.payments || []);
       }
+
+      if (!usersRes.ok || !paymentsRes.ok) {
+        const failed = [
+          !statsRes.ok ? `stats (${statsRes.status})` : null,
+          !usersRes.ok ? `users (${usersRes.status})` : null,
+          !paymentsRes.ok ? `payments (${paymentsRes.status})` : null,
+          !leadsRes.ok ? `leads (${leadsRes.status})` : null,
+        ].filter(Boolean).join(", ");
+        setFetchError(`Could not load records: ${failed}.`);
+      }
     } catch (err) {
       console.error("Failed to load admin data:", err);
+      setFetchError("Network error while connecting to admin API.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +167,7 @@ export default function AdminDashboardPage() {
         <div className="glass-card max-w-md w-full p-8 border border-brass/40">
           <h1 className="font-display text-2xl text-ink mb-2">Admin Portal Login</h1>
           <p className="text-sm text-ink-muted mb-6">
-            Please sign in with your administrative account (<span className="text-brass-bright font-mono">{ADMIN_EMAIL}</span>) to access client details & stats.
+            Please sign in with your administrative account (<span className="text-brass-bright font-mono">{ADMIN_EMAILS.join(" or ")}</span>) to access client details & stats.
           </p>
           <Link
             href="/auth/signin?callbackUrl=/admin"
@@ -157,7 +183,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const isUserAdmin = session.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isUserAdmin = checkIsAdmin(session.user?.email);
 
   if (!isUserAdmin) {
     return (
@@ -169,7 +195,7 @@ export default function AdminDashboardPage() {
             You are currently signed in as <strong className="text-ink font-mono">{session.user?.email}</strong> (Customer Account).
           </p>
           <p className="text-xs text-ink-faint mb-6">
-            Only the administrative account (<strong className="text-brass-bright font-mono">{ADMIN_EMAIL}</strong>) is authorized to access client records and dashboard analytics.
+            Only administrative accounts (<strong className="text-brass-bright font-mono">{ADMIN_EMAILS.join(" / ")}</strong>) are authorized to access client records and dashboard analytics.
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -224,6 +250,15 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
         </div>
+
+        {fetchError && (
+          <div className="mb-6 p-4 rounded-lg bg-red-950/60 border border-red-500/40 text-red-300 text-xs font-mono flex items-center justify-between">
+            <span>⚠️ {fetchError}</span>
+            <button onClick={fetchAdminData} className="underline hover:text-white ml-4">
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Stats Grid */}
         {stats && (

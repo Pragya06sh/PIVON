@@ -3,18 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+import { isAdminEmail } from "@/lib/admin";
+
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/admin/leads — Paginated list of all captured leads.
- * Protected: Only accessible by admin (ADMIN_EMAIL in .env).
+ * Protected: Only accessible by admin.
  */
 export async function GET(req: NextRequest) {
   // Auth check
   const session = await getServerSession(authOptions);
-  const adminEmail = process.env.ADMIN_EMAIL;
 
-  if (!session?.user?.email || session.user.email !== adminEmail) {
+  if (!isAdminEmail(session?.user?.email)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

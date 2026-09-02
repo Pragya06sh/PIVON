@@ -77,7 +77,8 @@ export default function Navbar({ onOpenAuth }: NavbarProps) {
               Try Automation
             </Link>
           )}
-          {session?.user?.email?.toLowerCase() === "pivon.agency@gmail.com" && (
+          {session?.user?.email &&
+            ["pivon.agency@gmail.com", "admin@pivon.ai"].includes(session.user.email.toLowerCase()) && (
             <Link href="/admin" className="navbar__link text-brass-bright font-mono">
               Admin Portal
             </Link>

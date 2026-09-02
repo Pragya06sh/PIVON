@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdminEmail } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "pivon.agency@gmail.com";
 
 // GET — List all payments (admin only)
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email || session.user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -42,7 +41,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email || session.user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -69,7 +68,7 @@ export async function PATCH(req: NextRequest) {
       data: {
         status: action === "verify" ? "VERIFIED" : "REJECTED",
         verifiedAt: new Date(),
-        verifiedBy: session.user.email,
+        verifiedBy: session?.user?.email ?? "admin",
       },
     });
 
